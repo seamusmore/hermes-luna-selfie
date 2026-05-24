@@ -13,7 +13,7 @@ triggers:
 
 # luna-selfie
 
-通用角色自拍生成器。安装后配置 `config.json` 即可使用，**不绑定任何特定角色风格，需要手动配置**。
+通用角色自拍生成器。安装后配置 `config.json` 即可使用，**不绑定任何特定角色风格**。
 
 ## 安装
 
@@ -56,9 +56,9 @@ SELFIE_API_KEY=sk-xxxxxxxxxxxxxxxx
 
 ## 工作流（给 agent 看）
 
-1. **自由构思**今天的场景、穿搭、饰品、动作、光线
+1. **自由构思**今天的场景、穿搭、饰品、动作、光线，形成场景描述词
 2. **去重检查**：查 `~/.hermes/selfie/history.json` 最近 7 天，不要重复场景/穿搭/饰品
-3. **生成**：调用 `generate_selfie.py`，只传入你构思的场景词
+3. **生成**：调用 `generate_selfie.py`，只传入你构思的场景描述词
 4. **交付**：用 `MEDIA:` 标签发给用户
 5. **记录**：追加本次的场景、穿搭、饰品到 `~/.hermes/selfie/history.json`，格式见参考文档
 
