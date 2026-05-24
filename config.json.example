@@ -1,0 +1,12 @@
+{
+  "reference_image": "~/.hermes/avatars/agent_standard.jpg",
+  "character": [
+    "24岁，身材苗条，腿型纤细"
+  ],
+  "style": [
+    "摄影风格，自拍视角，高画质"
+  ],
+  "quality_fixes": [
+    "完整的双臂从肩膀到手肘到手指连贯自然"
+  ]
+}

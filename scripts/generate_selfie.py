@@ -91,6 +91,70 @@ def get_ref_image_path():
     return os.getenv("REF_IMAGE_PATH", "")
 
 
+MODELS_API_URL = "https://dashscope.aliyuncs.com/api/v1/models"
+
+
+def validate_api_key(api_key):
+    """预检 API Key 有效性——调用百炼模型列表接口轻量验证"""
+    if not api_key or not api_key.startswith("sk-"):
+        raise ValueError("API Key 格式异常：应以 sk- 开头，请检查 ~/.hermes/.env 中的 SELFIE_API_KEY")
+
+    headers = {"Authorization": f"Bearer {api_key}"}
+    try:
+        resp = requests.get(MODELS_API_URL, headers=headers, timeout=10)
+        if resp.status_code == 401:
+            raise ValueError("API Key 无效（401 Unauthorized），请检查 SELFIE_API_KEY 是否正确")
+        resp.raise_for_status()
+        print("✅ API Key 验证通过")
+    except requests.exceptions.RequestException as e:
+        raise ValueError(f"API Key 验证请求失败：{e}")
+
+
+def load_config():
+    """从技能根目录加载 config.json，不存在则从 .example 拷贝"""
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    skill_dir = os.path.dirname(script_dir)
+    config_path = os.path.join(skill_dir, "config.json")
+    example_path = os.path.join(skill_dir, "config.json.example")
+
+    if not os.path.exists(config_path):
+        if os.path.exists(example_path):
+            import shutil
+            shutil.copy2(example_path, config_path)
+            print(f"📄 从 config.json.example 初始化 {config_path}")
+            print(f"⚠️ 请修改 {config_path} 中的 reference_image 配置你的角色参考图")
+        else:
+            print(f"⚠️ config.json 和 config.json.example 均不存在，使用纯场景 prompt")
+            return {}
+
+    with open(config_path, "r") as f:
+        cfg = json.load(f)
+
+    print(f"✅ 加载配置：{config_path}")
+    return cfg
+
+
+def build_prompt(scene_prompt, config):
+    """拼接完整 prompt：character + 场景描述 + style + quality_fixes"""
+    parts = []
+
+    character = config.get("character", [])
+    if character:
+        parts.append("。".join(character))
+
+    parts.append(scene_prompt)
+
+    style = config.get("style", [])
+    if style:
+        parts.append("。".join(style))
+
+    quality_fixes = config.get("quality_fixes", [])
+    if quality_fixes:
+        parts.append("。".join(quality_fixes))
+
+    return "。".join(parts)
+
+
 def image_to_base64(image_path):
     """将本地图片转换为 base64 编码"""
     if not os.path.exists(image_path):
@@ -264,12 +328,16 @@ def generate_selfie_async(scene_prompt, ref_image_path=None, size=DEFAULT_SIZE, 
         dict: {"success": bool, "url": str, "path": str, "time": float} 或 {"success": False, "error": str}
     """
     api_key = get_api_key()
-    
+    validate_api_key(api_key)
+
+    config = load_config()
+    scene_prompt = build_prompt(scene_prompt, config)
+
     if not ref_image_path:
-        ref_image_path = get_ref_image_path()
-    
+        ref_image_path = os.path.expanduser(config.get("reference_image") or get_ref_image_path())
+
     start_time = datetime.now()
-    
+
     try:
         # 加载参考图并转 base64
         ref_image_base64 = None
@@ -344,11 +412,15 @@ def generate_selfie(scene_prompt, ref_image_path=None, size=DEFAULT_SIZE, output
         dict: {"success": bool, "url": str, "path": str, "time": float} 或 {"success": False, "error": str}
     """
     api_key = get_api_key()
-    
-    # 如果没有提供参考图，尝试从.env 读取默认参考图
+    validate_api_key(api_key)
+
+    config = load_config()
+    scene_prompt = build_prompt(scene_prompt, config)
+
+    # 如果没有提供参考图，优先从 config.json 读取，fallback 到 .env
     if not ref_image_path:
-        ref_image_path = get_ref_image_path()
-    
+        ref_image_path = os.path.expanduser(config.get("reference_image") or get_ref_image_path())
+
     start_time = datetime.now()
     
     # 构造请求体
@@ -402,7 +474,7 @@ def generate_selfie(scene_prompt, ref_image_path=None, size=DEFAULT_SIZE, output
     
     try:
         # 同步调用 API
-        response = requests.post(SYNC_API_URL, headers=headers, json=payload, timeout=60)
+        response = requests.post(SYNC_API_URL, headers=headers, json=payload, timeout=180)
         response.raise_for_status()
         result = response.json()
         
