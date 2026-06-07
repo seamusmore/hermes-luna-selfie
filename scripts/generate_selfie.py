@@ -5,7 +5,7 @@
 通过参考图保持角色一致性的自拍照片生成
 
 使用方法:
-    python3 generate_selfie.py "场景描述" [--ref_image PATH] [--size 1280*1280]
+    python3 generate_selfie.py "场景描述" [--ref_image PATH] [--size 720*1280]
 
 环境变量:
     SELFIE_API_KEY: 阿里云百炼 API Key（从.env 文件读取）
@@ -21,14 +21,14 @@ import time
 from datetime import datetime
 
 # 默认配置
-DEFAULT_SIZE = "1280*1280"
+DEFAULT_SIZE = "720*1280"
 DEFAULT_OUTPUT_DIR = os.path.expanduser("~/.hermes/selfie")
 
 # 支持的分辨率（必须是 16 的倍数，范围 [768*768, 2048*2048]）
 SUPPORTED_SIZES = [
-    "1280*1280",  # 1:1 正方形（默认）
+    "720*1280",   # 9:16 竖版（默认，自拍推荐）
+    "1280*1280",  # 1:1 正方形
     "1280*720",   # 16:9 横版
-    "720*1280",   # 9:16 竖版（自拍推荐）
     "1280*853",   # 3:2 横版
     "853*1280",   # 2:3 竖版
     "1536*1024",  # 3:2 横版
